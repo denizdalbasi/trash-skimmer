@@ -5,32 +5,8 @@
 TIM_HandleTypeDef htim1;
 UART_HandleTypeDef huart2;
 
-const uint8_t segment_patterns[10] = {
-    0b00111111,
-    0b00000110,
-    0b01011011,
-    0b01001111,
-    0b01100110,
-    0b01101101,
-    0b01111101,
-    0b00000111,
-    0b01111111,
-    0b01101111
-};
-
-void display_digit(uint8_t digit) {
-    if (digit > 9) return;
-    uint8_t pattern = segment_patterns[digit];
-
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, (pattern & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, (pattern & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, (pattern & 0x04) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, (pattern & 0x08) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, (pattern & 0x10) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, (pattern & 0x20) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, (pattern & 0x40) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-}
-
+// This function sends a single character through the serial port 
+// so we can use printf to print messages to our computer.
 int __io_putchar(int ch) {
     HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
     return ch;
@@ -40,8 +16,9 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART2_UART_Init(void);
-void display_digit(uint8_t digit);
 
+// This function measures the distance to an object by sending a sound wave 
+// from an ultrasonic sensor and calculating how long it takes to bounce back.
 uint32_t read_sensor(uint16_t trig_pin, GPIO_TypeDef* trig_port, uint16_t echo_pin, GPIO_TypeDef* echo_port) {
     HAL_GPIO_WritePin(trig_port, trig_pin, GPIO_PIN_SET);
     for(volatile int i = 0; i < 100; i++);
@@ -63,6 +40,8 @@ uint32_t read_sensor(uint16_t trig_pin, GPIO_TypeDef* trig_port, uint16_t echo_p
     return ptime / 58;
 }
 
+// This is the main program loop. It constantly checks the three distance sensors 
+// and sends the results to your computer every half second.
 int main(void)
 {
   HAL_Init();
@@ -80,18 +59,14 @@ int main(void)
       right_dist = read_sensor(GPIO_PIN_12, GPIOA, GPIO_PIN_11, GPIOA); // Right (PA12/PA11)
       left_dist  = read_sensor(GPIO_PIN_8, GPIOA, GPIO_PIN_9, GPIOA);   // Left (PA8/PA9)
 
-      if (front_dist > 9) {
-          display_digit(9);
-      } else {
-          display_digit((uint8_t)front_dist);
-      }
-
+      // Print sensor data over UART
       printf("front:%lu:right:%lu:left:%lu:\r\n", front_dist, right_dist, left_dist);
 
       HAL_Delay(500);
   }
 }
 
+// This function sets up the main speed and clock settings for the microcontroller chip.
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -127,6 +102,7 @@ void SystemClock_Config(void)
   }
 }
 
+// This function sets up Timer 1, which helps manage timing for the program.
 static void MX_TIM1_Init(void)
 {
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -156,6 +132,7 @@ static void MX_TIM1_Init(void)
   }
 }
 
+// This function prepares the serial communication port so the microcontroller can talk to your computer.
 static void MX_USART2_UART_Init(void)
 {
   huart2.Instance = USART2;
@@ -172,6 +149,7 @@ static void MX_USART2_UART_Init(void)
   }
 }
 
+// This function configures the hardware pins on the board as inputs (to read sensors) or outputs.
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -179,10 +157,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_6|GPIO_PIN_8|GPIO_PIN_12, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_RESET);
 
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -195,18 +171,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
   GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_9|GPIO_PIN_11;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
+// This function stops the program in an endless loop if a serious error happens.
 void Error_Handler(void)
 {
   __disable_irq();
