@@ -12,7 +12,7 @@ int __io_putchar(int ch) {
     return ch;
 }
 
-void SystemClock_Config(void);
+void SystemClock_Config(void);//to do all the configurations for the important functions later
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART2_UART_Init(void);
