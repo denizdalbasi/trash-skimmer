@@ -2,15 +2,8 @@
 #include "esp_http_server.h"
 #include <WiFi.h>
 
-// ==========================================
-// Wi-Fi SoftAP Configuration
-// ==========================================
 static const char* AP_SSID = "SkimmerCam";
-static const char* AP_PASS = "skimmer123"; // Must be at least 8 characters for WPA2
-
-// ==========================================
-// Camera Pin Definitions: CAMERA_MODEL_AI_THINKER
-// ==========================================
+static const char* AP_PASS = "skimmer123"; 
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
@@ -46,8 +39,6 @@ static esp_err_t stream_handler(httpd_req_t* req) {
   if (res != ESP_OK) {
     return res;
   }
-
-  // Allow cross-origin access if viewing from browser/tools
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
   while (true) {
